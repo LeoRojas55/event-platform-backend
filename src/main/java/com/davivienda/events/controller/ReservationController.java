@@ -28,8 +28,21 @@ public class ReservationController {
 
     @Autowired private RerservationService reservationService;
 
+    @Autowired private EventService eventService;
+
     @PostMapping("/create")
     public ResponseEntity<ReservationResponse> create(@RequestBody ReservationRequest request) {
+
+        Event event = eventService.findById(request.getEventId())
+                .orElseThrow(() -> new RuntimeException("Event not found"));
+        long reservationsCount = reservationService.read()
+                .stream()
+                .filter(reservation -> reservation.getEvent().getId().equals(event.getId()))
+                .count();
+        if (reservationsCount >= event.getCapacity()) {
+            return ResponseEntity.status(400)
+                            .build();
+        }
         Reservation reservation =reservationService.create(
                 request.getEventId(),
                 request.getUserId());

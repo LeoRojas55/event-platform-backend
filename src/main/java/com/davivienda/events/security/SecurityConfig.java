@@ -23,8 +23,10 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable())
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("**").permitAll()
-                        .anyRequest().authenticated())
+                        .requestMatchers("/api/auth/**").permitAll() // Rutas públicas como login/register
+                        .requestMatchers("/api/events/**").authenticated() // Protegidas con JWT
+                        .requestMatchers("/api/reservations/**").authenticated() // Protegidas con JWT
+                        .anyRequest().denyAll())
                 .addFilterBefore(filter, UsernamePasswordAuthenticationFilter.class)
                 .build();
     }
@@ -32,5 +34,6 @@ public class SecurityConfig {
     public org.springframework.security.crypto.password.PasswordEncoder passwordEncoder() {
     return new org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder();
     }
+
 
 }
