@@ -2,16 +2,18 @@ package com.davivienda.events.controller;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 
+import com.davivienda.events.dto.ReservationRequest;
+import com.davivienda.events.dto.EventResponse;
+import com.davivienda.events.dto.ReservationResponse;
+import com.davivienda.events.service.EventService;
+import com.davivienda.events.service.RerservationService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import com.davivienda.events.model.Event;
 import com.davivienda.events.model.Reservation;
@@ -24,53 +26,55 @@ import com.davivienda.events.repository.UserRepository;
 @RequestMapping("/api/reservations")
 public class ReservationController {
 
-    @Autowired
-    private ReservationRepository reservationRepository;
+    @Autowired private RerservationService reservationService;
 
-    @Autowired
-    private UserRepository userRepository;
+    @PostMapping("/create")
+    public ResponseEntity<ReservationResponse> create(@RequestBody ReservationRequest request) {
+        Reservation reservation =reservationService.create(
+                request.getEventId(),
+                request.getUserId());
 
-    @Autowired
-    private EventRepository eventRepository;
-
-    @GetMapping("/my")
-    public List<Reservation> getUserReservations(@AuthenticationPrincipal UserDetails userDetails) {
-        Long userId = userRepository.findByUsername(userDetails.getUsername())
-                                    .map(User::getId)
-                                    .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
-        return reservationRepository.findByUserId(userId);
+        ReservationResponse reservationResponse =
+                ReservationResponse.builder()
+                        .reservation(reservation)
+                        .build();
+        return ResponseEntity.ok().body(reservationResponse);
     }
 
-    @PostMapping("/{eventId}")
-    public Reservation reserve(@PathVariable Long eventId, @AuthenticationPrincipal UserDetails userDetails) {
-        User user = userRepository.findByUsername(userDetails.getUsername())
-                                  .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
-        Event event = eventRepository.findById(eventId)
-                                     .orElseThrow(() -> new RuntimeException("Evento no encontrado"));
+    @GetMapping("/show")
+    public ResponseEntity<List<Reservation>> show() {
+        List<Reservation> reservationList = reservationService.read();
+        return ResponseEntity.ok().body(reservationList);
+    }
 
-        // Validar si el evento está lleno
-        int reservasActuales = reservationRepository.countByEventId(eventId);
-        if (reservasActuales >= event.getCapacity()) {
-            throw new RuntimeException("El evento ya está completo");
-        }
+    @GetMapping("/{id}")
+    public ResponseEntity<ReservationResponse>getReservationById(@PathVariable Long id) {
+        Optional<Reservation> reservation = reservationService.findById(id);
+        ReservationResponse reservationResponse =
+                ReservationResponse.builder()
+                        .reservation(reservation.orElse(null))
+                        .build();
+        return ResponseEntity.ok().body(reservationResponse);
+    }
 
-        Reservation reservation = new Reservation();
-        reservation.setUser(user);
-        reservation.setEvent(event);
-        reservation.setReservationDate(LocalDateTime.now());
+    @PutMapping("/{id}")
+    public ResponseEntity<ReservationResponse> updateReservation(@PathVariable Long id, @RequestBody ReservationRequest request) {
+        Reservation reservation =reservationService.update(
+                request.getId(),
+                request.getUserId(),
+                request.getEventId());
 
-        return reservationRepository.save(reservation);
+        ReservationResponse reservationResponse =
+                ReservationResponse.builder()
+                        .reservation(reservation)
+                        .build();
+        return ResponseEntity.ok().body(reservationResponse);
+
     }
 
     @DeleteMapping("/{id}")
-    public void cancelReservation(@PathVariable Long id, @AuthenticationPrincipal UserDetails userDetails) {
-        Reservation res = reservationRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Reserva no encontrada"));
-
-        if (!res.getUser().getUsername().equals(userDetails.getUsername())) {
-            throw new RuntimeException("No autorizado para eliminar esta reserva");
-        }
-
-        reservationRepository.deleteById(id);
+    public ResponseEntity<Void> deleteReservation(@PathVariable Long id) {
+        reservationService.deleteById(id);
+        return ResponseEntity.noContent().build();
     }
 }

@@ -3,8 +3,8 @@ package com.davivienda.events.dto;
 import lombok.Getter;
 
 import java.time.LocalDate;
-@Getter
 
+@Getter
 public class EventRequest {
 
     private Long id;

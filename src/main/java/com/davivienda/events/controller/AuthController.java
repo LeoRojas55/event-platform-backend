@@ -1,8 +1,6 @@
 package com.davivienda.events.controller;
 
-import com.davivienda.events.dto.AuthResponse;
-import com.davivienda.events.dto.EventResponse;
-import com.davivienda.events.dto.RegisterResponse;
+import com.davivienda.events.dto.*;
 import com.davivienda.events.model.Event;
 import com.davivienda.events.model.User;
 import com.davivienda.events.service.SessionService;
@@ -10,8 +8,6 @@ import com.davivienda.events.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
-import com.davivienda.events.dto.RegisterRequest;
 
 import java.util.List;
 import java.util.Optional;
@@ -28,6 +24,33 @@ public class AuthController {
 //        return new AuthResponse(jwtProvider.generateToken(request.username));
 //    }
 
+    @PostMapping("/login")
+    public ResponseEntity<AuthResponse> login(@RequestBody AuthRequest request) {
+        // Simula autenticación exitosa
+        String token = sessionService.createToken(request.getUsername());
+
+        // TODO: Consultar el usuario desde la base de datos
+        User user = userService.read().stream()
+                .filter(u -> u.getUsername().equals(request.getUsername()))
+                .findFirst()
+                .orElse(null);
+        if (user == null) {
+            return ResponseEntity.status(401).body(null); // Usuario no encontrado
+        }
+        if (!request.getPassword().equals(user.getPassword())) {
+            return ResponseEntity.status(401).body(null); // Contraseña incorrecta
+        }
+        // validar el usuario y la contraseña
+
+        //userService.read();
+        AuthResponse response = AuthResponse.builder()
+                .token(token)
+                .user(user)
+                .build();
+
+        return ResponseEntity.ok(response);
+    }
+
     @GetMapping("/hola")
     public String test (){
         return "Hola";
@@ -43,7 +66,6 @@ public class AuthController {
                         .token(token)
                         .build();
         return ResponseEntity.ok().body(registerResponse);
-
     }
 
     @GetMapping("/show")
