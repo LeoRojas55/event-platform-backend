@@ -8,12 +8,8 @@ import lombok.Setter;
 @Getter
 @Setter
 @Builder
-public class AuthResponse {
-    public String token;
+public class RegisterResponse {
     private User user;
+    private String token;
 
-    public AuthResponse(String token, User user) {
-        this.token = token;
-        this.user = user;
-    }
 }

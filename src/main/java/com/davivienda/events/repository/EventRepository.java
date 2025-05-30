@@ -7,4 +7,5 @@ import com.davivienda.events.model.Event;
 
 @Repository
 public interface EventRepository extends JpaRepository<Event, Long> {
+
 }
